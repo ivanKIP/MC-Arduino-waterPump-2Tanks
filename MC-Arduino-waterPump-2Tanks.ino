@@ -38,12 +38,14 @@ void loop() {
   bT1_LOW  = ~ readDebounceT1L();
   bT2_LOW  = ~ readDebounceT2L();
 
-  if (bT2_LOW && !bT1_LOW) {
-    step = 2;
-  }
+  if (step == 0) {
+    if (bT2_LOW && !bT1_LOW) {
+      step = 2;
+    }
 
-  if (bT1_LOW) {
-    step = 1;
+    if (bT1_LOW) {
+      step = 1;
+    }
   }
 
   switch (step) {
