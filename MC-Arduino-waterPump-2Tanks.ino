@@ -1,8 +1,8 @@
-const byte T1_LEVEL_LOW = 2;                              // № pin датчик ёмкости 1 "нижний уровень"
+const byte T1_LEVEL_LOW  = 2;                             // № pin датчик ёмкости 1 "нижний уровень"
 const byte T1_LEVEL_HIGH = 3;                             // № pin датчик ёмкости 1 "верхний уровень"
-const byte T2_LEVEL_LOW = 4;                              // № pin датчик ёмкости 2 "нижний уровень"
-const byte FILL_T1_OUT = 11;                              // № pin клапан наполнения ёмкости 1
-const byte FILL_T2_OUT = 12;                              // № pin клапан наполнения ёмкости 2
+const byte T2_LEVEL_LOW  = 4;                             // № pin датчик ёмкости 2 "нижний уровень"
+const byte FILL_T1_OUT   = 11;                            // № pin клапан наполнения ёмкости 1
+const byte FILL_T2_OUT   = 12;                            // № pin клапан наполнения ёмкости 2
 const unsigned long maxTankFillingTime = 2*60*60*1000UL;  // максимальное время работы насоса в мс (n часов * 60 мин * 60 сек)
 unsigned long startTankFillingTime = 0;                   // время запуска насоса
 const byte debounceDelay = 40;                            // фильтр дребезга (мс)
@@ -11,15 +11,15 @@ bool bT1_LOW, bT1_HIGH, bT2_LOW;                          // сигнал с д�
 unsigned int step = 0;                                    // номер шага программы
 
 // Переменные для функций подавления дребезга --->
-unsigned long lastDebounceTime1 = 0;
-unsigned long lastDebounceTime2 = 0;
-unsigned long lastDebounceTime3 = 0;
-bool lastSensorStateT1L = LOW;
-bool lastSensorStateT1H = LOW;
-bool lastSensorStateT2L = LOW;
-bool SensorStateT1L = LOW;
-bool SensorStateT1H = LOW;
-bool SensorStateT2L = LOW;
+unsigned long lastDebounceTimeT1L = 0;
+unsigned long lastDebounceTimeT1H = 0;
+unsigned long lastDebounceTimeT2L = 0;
+bool lastSensorStateT1L = HIGH;
+bool lastSensorStateT1H = HIGH;
+bool lastSensorStateT2L = HIGH;
+bool SensorStateT1L = HIGH;
+bool SensorStateT1H = HIGH;
+bool SensorStateT2L = HIGH;
 // <---
 
 void setup() {
@@ -34,10 +34,10 @@ void setup() {
 }
 
 void loop() {
-  bT1_HIGH = ~ readDebounceT1H();
-  bT1_LOW  = ~ readDebounceT1L();
-  bT2_LOW  = ~ readDebounceT2L();
-
+  bT1_HIGH = !readDebounceT1H();
+  bT1_LOW  = !readDebounceT1L();
+  bT2_LOW  = !readDebounceT2L();
+  
   if (step == 0) {
     if (bT2_LOW && !bT1_LOW) {
       step = 2;
@@ -53,8 +53,9 @@ void loop() {
     case 1:
       // отключаем выход 2 (на перелив из ёмкости 1 в 2)
       digitalWrite(FILL_T2_OUT, HIGH);
-      // включаем выход 1 (насос для ёмкости 1)
+      // включаем выход 1 (насос для ёмкости 1) и светодиод
       digitalWrite(FILL_T1_OUT, LOW);
+      digitalWrite(13, HIGH);
       if (startTankFillingTime == 0) {
         startTankFillingTime = millis();
       }
@@ -65,8 +66,9 @@ void loop() {
     
     // наполнение ёмкости 2 (перелив из 1)
     case 2:
-      // отключаем выход 1 (насос для ёмкости 1)
+      // отключаем выход 1 (насос для ёмкости 1) и светодиод
       digitalWrite(FILL_T1_OUT, HIGH);
+      digitalWrite(13, LOW);
       // включаем выход 2 (на перелив из ёмкости 1 в 2)
       digitalWrite(FILL_T2_OUT, LOW);
       if (bT1_LOW) {
@@ -78,6 +80,7 @@ void loop() {
       // отключаем все выходы
       digitalWrite(FILL_T1_OUT, HIGH);
       digitalWrite(FILL_T2_OUT, HIGH);
+      digitalWrite(13, LOW);
       // сбрасываем время запуска насоса
       startTankFillingTime = 0;
       break;
@@ -89,10 +92,10 @@ bool readDebounceT1L() {
 
   if (reading != lastSensorStateT1L) {
     // reset the debouncing timer
-    lastDebounceTime1 = millis();
+    lastDebounceTimeT1L = millis();
   }
 
-  if ((millis() - lastDebounceTime1) > debounceDelay) {
+  if ((millis() - lastDebounceTimeT1L) > debounceDelay) {
     // if the button state has changed:
     if (reading != SensorStateT1L) {
       SensorStateT1L = reading;
@@ -110,10 +113,10 @@ bool readDebounceT1H() {
 
   if (reading != lastSensorStateT1H) {
     // reset the debouncing timer
-    lastDebounceTime2 = millis();
+    lastDebounceTimeT1H = millis();
   }
 
-  if ((millis() - lastDebounceTime2) > debounceDelay) {
+  if ((millis() - lastDebounceTimeT1H) > debounceDelay) {
     // if the button state has changed:
     if (reading != SensorStateT1H) {
       SensorStateT1H = reading;
@@ -131,10 +134,10 @@ bool readDebounceT2L() {
 
   if (reading != lastSensorStateT2L) {
     // reset the debouncing timer
-    lastDebounceTime3 = millis();
+    lastDebounceTimeT2L = millis();
   }
 
-  if ((millis() - lastDebounceTime3) > debounceDelay) {
+  if ((millis() - lastDebounceTimeT2L) > debounceDelay) {
     // if the button state has changed:
     if (reading != SensorStateT2L) {
       SensorStateT2L = reading;
